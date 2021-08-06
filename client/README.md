@@ -64,16 +64,94 @@ nano heartbeat-failover-makeStandby.sh
 Test the Standby Script
 ```
 sudo ./heartbeat-failover-makeStandby.sh
+
+# Making Standby
 ```
 
 Test the Activation Script
 ```
 sudo ./heartbeat-failover-makeActive.sh
+
+# Making Active
 ```
 
 Test the failover scripts
 ```
 sudo ./heartbeat-failover.sh
+
+# Sending Heartbeat signal for server bp1: 36593029
+# cat: /opt/cardano/cnode/custom/heartbeat-failover.active: Datei oder Verzeichnis nicht gefunden
+# Last Status:
+# New Status: Active
+# Status changed
+# Switch to Active
+# making Active
 ```
 
 ## Install the Service
+Create a new System Service which is triggered by a timmer
+
+Switch to the services folder
+```
+cd /etc/systemd/system
+```
+
+Download the Service scripts
+```
+wget https://raw.githubusercontent.com/ResponsibleStaking/Cardano-Heartbeat-Failover/main/client/system/failover-cardano.service
+wget https://raw.githubusercontent.com/ResponsibleStaking/Cardano-Heartbeat-Failover/main/client/system/failover-cardano.timer
+```
+
+Customize the script path in the service
+```
+nano failover-cardano.service
+
+#ExecStart=/opt/cardano/cnode/custom/heartbeat-failover.sh
+#This needs to point to your hearbeat-failover.sh file
+```
+
+Customize the timing
+```
+nano failover-cardano.timer
+
+#Change the row: OnCalendar=*:*:5/10
+#Config for bp1:
+#OnCalendar=*:*:0/10
+#Config for bp2:
+#OnCalendar=*:*:5/10
+
+#Resulting to every 5 seconds one of the servers running the job
+#10:00:00 bp1
+#10:00:05 bp2
+#10:00:10 bp1
+#10:00:15 bp2
+...
+```
+
+Enable and Activate the Service
+```
+sudo systemctl enable failover-cardano.service
+sudo systemctl start failover-cardano.service
+
+sudo systemctl enable failover-cardano.timer
+sudo systemctl start failover-cardano.timer
+```
+
+Validate if the Service is executed. Run the following command and check if the last execution is updating every 10 seconds: inactive (dead) since Fri 2021-08-06 13:30:15 CEST
+```
+sudo systemctl status failover-cardano.service
+
+#● failover-cardano.service - Heartbeat Signal Service
+#   Loaded: loaded (/etc/systemd/system/failover-cardano.service; enabled; vendor preset: enabled)
+#   Active: inactive (dead) since Fri 2021-08-06 13:30:15 CEST; 123ms ago
+#  Process: 50018 ExecStart=/opt/cardano/cnode/custom/heartbeat-failover.sh (code=exited, status=0/SUCCESS)
+# Main PID: 50018 (code=exited, status=0/SUCCESS)
+
+#Aug 06 13:30:15 debian systemd[1]: Starting Heartbeat Signal Service...
+#Aug 06 13:30:15 debian heartbeat-failover.sh[50018]: Sending Heartbeat signal for server bp1: 36593029
+#Aug 06 13:30:15 debian heartbeat-failover.sh[50018]: Last Status: Active
+#Aug 06 13:30:15 debian heartbeat-failover.sh[50018]: New Status: Active
+#Aug 06 13:30:15 debian heartbeat-failover.sh[50018]: Status not changed
+#Aug 06 13:30:15 debian systemd[1]: failover-cardano.service: Succeeded.
+#Aug 06 13:30:15 debian systemd[1]: Started Heartbeat Signal Service.
+```

@@ -1,6 +1,5 @@
 #!/usr/bin/env bash
 # shellcheck disable=SC2034,SC2086,SC2230,SC2009,SC2206,SC2062,SC2059
-# Replace YOUR-USERNAME and YOUR-PING-ID below. You need a Healthcheck.io Account
 
 CARDANO_CLI_PATH=/home/USER/.cabal/bin/cardano-cli        #Set the name which was used for Installing CNODE. - e.g. /home/YOUR-USERNAME/.cabal/bin/cardano-cli
                                                           #Make sure to replace YOUR-USER
@@ -39,9 +38,11 @@ if [ "$lastStatus" != "$newStatus" ]; then
   if [ "$newStatus" == "Active" ]; then
     echo "Switch to Active"
     "$FAILOVER_SCRIPT_ROOT/heartbeat-failover-makeActive.sh"
-  else
+  elif [ "$newStatus" == "Standby" ]; then
     echo "Switch to StandBy"
     "$FAILOVER_SCRIPT_ROOT/heartbeat-failover-makeStandby.sh"
+  else
+    echo "Invalid new Status -> Do nothing, Next time a valid status comes in a State switch will be executed"
   fi
 
   now=$(date +"%T")
