@@ -42,6 +42,7 @@ if [ "$lastStatus" != "$newStatus" ]; then
     echo "Switch to StandBy"
     "$FAILOVER_SCRIPT_ROOT/heartbeat-failover-makeStandby.sh"
   else
+    newStatus="Invalid"
     echo "Invalid new Status -> Do nothing, Next time a valid status comes in a State switch will be executed"
   fi
 

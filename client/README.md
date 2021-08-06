@@ -9,7 +9,7 @@ First we need to install the scripts which take care about reporting the signal 
 
 Create a folder where the new scripts should be placed
 ```
-mkdir /opt/cardano/cnode/custom
+mkdir -p /opt/cardano/cnode/custom
 cd /opt/cardano/cnode/custom
 ```
 
@@ -37,7 +37,7 @@ chown root heartbeat-failover-makeStandby.sh
 ## Configure the Scripts
 Open the main script
 ```
-nano heartbeat-failover.sh
+sudo nano heartbeat-failover.sh
 ```
 
 Edit the configuration section in the top of the file to meet your environment
