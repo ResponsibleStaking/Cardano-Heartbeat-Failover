@@ -35,7 +35,20 @@ chown root heartbeat-failover-makeStandby.sh
 ```
 
 ## Configure the Scripts
+Open the main script
+```
+nano heartbeat-failover.sh
+```
+Edit the configuration section in the top of the file to meet your environment
+```
+CARDANO_CLI_PATH=/home/USER/.cabal/bin/cardano-cli        #Set the name which was used for Installing CNODE. - e.g. /home/YOUR-USERNAME/.cabal/bin/cardano-cli
+                                                          #Make sure to replace YOUR-USER
+FAILOVER_SCRIPT_ROOT=/opt/cardano/cnode/custom            #The folder where this script is placed
 
-
+FAILOVER_SERVICE_HEARTBEAT_URL=                           #AWS Endpoint URL of the service. e.g. https://abcdefghij.execute-api.eu-west-1.amazonaws.com/production/failover-service
+FAILOVER_SERVICE_TENANT_ID=                               #Generate a UUID for your environment here: https://www.uuidgenerator.net/
+FAILOVER_SERVICE_AUTH_TOKEN=                              #AWS Auth Token
+FAILOVER_SERVICE_NODE_NAME=                               #This Name needs to be reflected in the Environment Variables of the AWS Lambda function
+```
 
 ## Install the Service
