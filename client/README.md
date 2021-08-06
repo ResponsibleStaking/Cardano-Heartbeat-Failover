@@ -1,2 +1,41 @@
 # Client-Side Part
-AWS based Cloud Service to take Failover Decisions and Client Service to send Heartbeats and execute Switchovers
+The Client Part consists of 2 pieces
+1. A set of Script which takes care and reporting heartbeat signals, fetch the proposed server role and apply it if it changed.
+2. A Service which is timed to call the below script every N seconds
+
+
+## Install the Scripts
+First we need to install the scripts which take care about reporting the signal and
+
+Create a folder where the new scripts should be placed
+```
+mkdir /opt/cardano/cnode/custom
+cd /opt/cardano/cnode/custom
+```
+
+Download the draft scripts into this folder
+```
+wget https://raw.githubusercontent.com/ResponsibleStaking/Cardano-Heartbeat-Failover/main/client/scripts/heartbeat-failover.sh
+wget https://raw.githubusercontent.com/ResponsibleStaking/Cardano-Heartbeat-Failover/main/client/scripts/heartbeat-failover-makeActive.sh
+wget https://raw.githubusercontent.com/ResponsibleStaking/Cardano-Heartbeat-Failover/main/client/scripts/heartbeat-failover-makeStandby.sh
+```
+Make sure the scripts are executeable through for the owner only
+```
+chmod 700 heartbeat-failover.sh
+chmod 700 heartbeat-failover-makeActive.sh
+chmod 700 heartbeat-failover-makeStandby.sh
+```
+
+Make sure the scripts are owned by root and are not editable for anyone else.
+Note: This is required because the scripts will be used to change firewall rules which requires root access. To avoid manipulation of the script (which is automatically triggered by a service) laterwards nobody else should be allowed to manipulate the script
+```
+chown root heartbeat-failover.sh
+chown root heartbeat-failover-makeActive.sh
+chown root heartbeat-failover-makeStandby.sh
+```
+
+## Configure the Scripts
+
+
+
+## Install the Service
