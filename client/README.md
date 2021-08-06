@@ -39,6 +39,7 @@ Open the main script
 ```
 nano heartbeat-failover.sh
 ```
+
 Edit the configuration section in the top of the file to meet your environment
 ```
 CARDANO_CLI_PATH=/home/USER/.cabal/bin/cardano-cli        #Set the name which was used for Installing CNODE. - e.g. /home/YOUR-USERNAME/.cabal/bin/cardano-cli
@@ -49,6 +50,30 @@ FAILOVER_SERVICE_HEARTBEAT_URL=                           #AWS Endpoint URL of t
 FAILOVER_SERVICE_TENANT_ID=                               #Generate a UUID for your environment here: https://www.uuidgenerator.net/
 FAILOVER_SERVICE_AUTH_TOKEN=                              #AWS Auth Token
 FAILOVER_SERVICE_NODE_NAME=                               #This Name needs to be reflected in the Environment Variables of the AWS Lambda function
+```
+
+Open the Activation and deactivation scripts.
+Note: This files are called by the main script if the server needs to switch to a new State
+Note: They need to be customised for you purpose.
+Note: In the example I use ufw to enable or disable access to this Server. This will avoid that the Relays are fetching new Blocks which are produced by this Server.
+```
+nano heartbeat-failover-makeActive.sh
+nano heartbeat-failover-makeStandby.sh
+```
+
+Test the Standby Script
+```
+sudo ./heartbeat-failover-makeStandby.sh
+```
+
+Test the Activation Script
+```
+sudo ./heartbeat-failover-makeActive.sh
+```
+
+Test the failover scripts
+```
+sudo ./heartbeat-failover.sh
 ```
 
 ## Install the Service
