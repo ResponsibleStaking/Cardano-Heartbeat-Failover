@@ -1,0 +1,12 @@
+# /etc/systemd/system/failover-cardano.service
+
+[Unit]
+Description=Heartbeat Signal Service
+Wants=failover-cardano.timer
+
+[Service]
+Type=oneshot
+ExecStart=/opt/cardano/cnode/custom/heartbeat-failover.sh
+
+[Install]
+WantedBy=multi-user.target
