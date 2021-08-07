@@ -57,8 +57,8 @@ Note: This files are called by the main script if the server needs to switch to 
 Note: They need to be customised for you purpose.
 Note: In the example I use ufw to enable or disable access to this Server. This will avoid that the Relays are fetching new Blocks which are produced by this Server.
 ```
-nano heartbeat-failover-makeActive.sh
-nano heartbeat-failover-makeStandby.sh
+sudo nano heartbeat-failover-makeActive.sh
+sudo nano heartbeat-failover-makeStandby.sh
 ```
 
 Test the Standby Script

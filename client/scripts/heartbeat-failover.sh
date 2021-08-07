@@ -46,7 +46,7 @@ if [ "$lastStatus" != "$newStatus" ]; then
     echo "Invalid new Status -> Do nothing, Next time a valid status comes in a State switch will be executed"
   fi
 
-  now=$(date +"%T")
+  now=$(date +"%Y-%m-%d %T")
   echo "$now: Switching from $lastStatus to $newStatus" >> "$FAILOVER_SCRIPT_ROOT/heartbeat-failover.log"
 else
   echo "Status not changed"
