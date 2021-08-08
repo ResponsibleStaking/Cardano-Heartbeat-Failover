@@ -15,23 +15,23 @@ cd /opt/cardano/cnode/custom
 
 Download the draft scripts into this folder
 ```
-wget https://raw.githubusercontent.com/ResponsibleStaking/Cardano-Heartbeat-Failover/main/client/scripts/heartbeat-failover.sh
-wget https://raw.githubusercontent.com/ResponsibleStaking/Cardano-Heartbeat-Failover/main/client/scripts/heartbeat-failover-makeActive.sh
-wget https://raw.githubusercontent.com/ResponsibleStaking/Cardano-Heartbeat-Failover/main/client/scripts/heartbeat-failover-makeStandby.sh
+sudo wget https://raw.githubusercontent.com/ResponsibleStaking/Cardano-Heartbeat-Failover/main/client/scripts/heartbeat-failover.sh
+sudo wget https://raw.githubusercontent.com/ResponsibleStaking/Cardano-Heartbeat-Failover/main/client/scripts/heartbeat-failover-makeActive.sh
+sudo wget https://raw.githubusercontent.com/ResponsibleStaking/Cardano-Heartbeat-Failover/main/client/scripts/heartbeat-failover-makeStandby.sh
 ```
 Make sure the scripts are executeable through for the owner only
 ```
-chmod 700 heartbeat-failover.sh
-chmod 700 heartbeat-failover-makeActive.sh
-chmod 700 heartbeat-failover-makeStandby.sh
+sudo chmod 700 heartbeat-failover.sh
+sudo chmod 700 heartbeat-failover-makeActive.sh
+sudo chmod 700 heartbeat-failover-makeStandby.sh
 ```
 
 Make sure the scripts are owned by root and are not editable for anyone else.
 Note: This is required because the scripts will be used to change firewall rules which requires root access. To avoid manipulation of the script (which is automatically triggered by a service) laterwards nobody else should be allowed to manipulate the script
 ```
-chown root heartbeat-failover.sh
-chown root heartbeat-failover-makeActive.sh
-chown root heartbeat-failover-makeStandby.sh
+sudo chown root heartbeat-failover.sh
+sudo chown root heartbeat-failover-makeActive.sh
+sudo chown root heartbeat-failover-makeStandby.sh
 ```
 
 ## Configure the Scripts
@@ -98,13 +98,13 @@ cd /etc/systemd/system
 
 Download the Service scripts
 ```
-wget https://raw.githubusercontent.com/ResponsibleStaking/Cardano-Heartbeat-Failover/main/client/system/failover-cardano.service
-wget https://raw.githubusercontent.com/ResponsibleStaking/Cardano-Heartbeat-Failover/main/client/system/failover-cardano.timer
+sudo wget https://raw.githubusercontent.com/ResponsibleStaking/Cardano-Heartbeat-Failover/main/client/system/failover-cardano.service
+sudo wget https://raw.githubusercontent.com/ResponsibleStaking/Cardano-Heartbeat-Failover/main/client/system/failover-cardano.timer
 ```
 
 Customize the script path in the service
 ```
-nano failover-cardano.service
+sudo nano failover-cardano.service
 
 #ExecStart=/opt/cardano/cnode/custom/heartbeat-failover.sh
 #This needs to point to your hearbeat-failover.sh file
@@ -112,7 +112,7 @@ nano failover-cardano.service
 
 Customize the timing
 ```
-nano failover-cardano.timer
+sudo nano failover-cardano.timer
 
 #Change the row: OnCalendar=*:*:5/10
 #Config for bp1:

@@ -98,23 +98,25 @@ exports.handler = (event, context, cb) => {
             };
             cb(null, response);
         } else {
-            //Persist fresh Tip Data through an update query (to make it available asap for other requests)
-            const paramsUpdate = {
+            var currentDataItem = null;
+
+            //Define DynamoDB Read Query
+            const paramsRead = {
                 TableName: 'server-failover-data',
                 Key:  {
                     'tenant-id': {S: paramTenantId}
-                },
-                UpdateExpression: "set #MyVariable = :x ",
-                ExpressionAttributeNames:{
-                    "#MyVariable": "servers-"+paramNodeName+"-lastTip"
-                },
-                ExpressionAttributeValues:{
-                    ":x": {N: paramCurrentTipText+""}
                 }
             };
-            dynamoDB.updateItem(paramsUpdate, function(err, data) {
+
+            //Calculate REF Tip and define Server status based on it
+            const refTip = Math.floor(Date.now()/1000 - 1591566291);
+            const now = Date.now();
+            console.log("Ref Tip: " + refTip);
+
+            //Fetch current Status from DynamoDB
+            dynamoDB.getItem(paramsRead, (err, data) => {
                 if (err) {
-                    errorText = "Was not able to persist new TIP data. Abort";
+                    errorText = "cannot read last data";
                     console.log(errorText);
                     const errorObject = {"error": errorText};
                     const response = {
@@ -126,27 +128,44 @@ exports.handler = (event, context, cb) => {
                         }
                     };
                     cb(null, response);
-                } else {
-                    console.log("New Tip persisted successfully");
-                    var currentDataItem = null;
+                }
+                else {
+                    //Use the existing Data Item and extend it with potentially missing attributes
+                    console.log("Loaded Existing Data");
+                    currentDataItem = AWS.DynamoDB.Converter.unmarshall(data.Item);
 
-                    //Define DynamoDB Read Query
-                    const paramsRead = {
+                    if (currentDataItem.currentActive == null) {
+                        console.log("Initialize current Active to " + aNodes[0] );
+                        currentDataItem.currentActive = aNodes[0];
+                    }
+                    if (currentDataItem.lastSwitchOver == null) {
+                        console.log("Initialize lastSwitchOver to now: " +now );
+                        currentDataItem.lastSwitchOver = now;
+                    }
+                    aNodes.forEach(function(item){
+                        if (currentDataItem["servers-" + item + "-lastTip"] == null) {
+                            console.log("Initialize servers-" + item + "-lastTip to sent Tip (all unitialized servers will have the same tip by that): " + paramCurrentTipText);
+                            currentDataItem["servers-" + item + "-lastTip"] = paramCurrentTipText;
+                        }
+                    });
+
+                    //Persist fresh Tip Data through an update query (to make it available asap for other requests)
+                    const paramsUpdate = {
                         TableName: 'server-failover-data',
                         Key:  {
                             'tenant-id': {S: paramTenantId}
+                        },
+                        UpdateExpression: "set #MyVariable = :x ",
+                        ExpressionAttributeNames:{
+                            "#MyVariable": "servers-"+paramNodeName+"-lastTip"
+                        },
+                        ExpressionAttributeValues:{
+                            ":x": {N: paramCurrentTipText+""}
                         }
                     };
-
-                    //Calculate REF Tip and define Server status based on it
-                    const refTip = Math.floor(Date.now()/1000 - 1591566291);
-                    const now = Date.now();
-                    console.log("Ref Tip: " + refTip);
-
-                    //Fetch current Status from DynamoDB
-                    dynamoDB.getItem(paramsRead, (err, data) => {
+                    dynamoDB.updateItem(paramsUpdate, function(err, data) {
                         if (err) {
-                            errorText = "cannot read last data";
+                            errorText = "Was not able to persist new TIP data. Abort";
                             console.log(errorText);
                             const errorObject = {"error": errorText};
                             const response = {
@@ -158,26 +177,8 @@ exports.handler = (event, context, cb) => {
                                 }
                             };
                             cb(null, response);
-                        }
-                        else {
-                            //Use the existing Data Item and extend it with potentially missing attributes
-                            console.log("Loaded Existing Data");
-                            currentDataItem = AWS.DynamoDB.Converter.unmarshall(data.Item);
-
-                            if (currentDataItem.currentActive == null) {
-                                console.log("Initialize current Active to " + aNodes[0] );
-                                currentDataItem.currentActive = aNodes[0];
-                            }
-                            if (currentDataItem.lastSwitchOver == null) {
-                                console.log("Initialize lastSwitchOver to now: " +now );
-                                currentDataItem.lastSwitchOver = now;
-                            }
-                            aNodes.forEach(function(item){
-                                if (currentDataItem["servers-" + item + "-lastTip"] == null) {
-                                    console.log("Initialize servers-" + item + "-lastTip to sent Tip (all unitialized servers will have the same tip by that): " + paramCurrentTipText);
-                                    currentDataItem["servers-" + item + "-lastTip"] = paramCurrentTipText;
-                                }
-                            });
+                        } else {
+                            console.log("New Tip persisted successfully");
 
                             console.log("  Current Active Node: " + currentDataItem.currentActive + ", Last Switchover: " + currentDataItem.lastSwitchOver);
 
@@ -199,12 +200,13 @@ exports.handler = (event, context, cb) => {
                                 if (callerIsStandby) {
                                     console.log("  Caller is currently Standby - evaluate if it should be promoted to Active");
 
-                                    //Calculate Tip age of Caller
-                                    var callerTipAge = refTip - paramCurrentTip;
+                                    //Calculate Tip age of Caller (based on the last heartbeat singal, not the newest data)
+                                    //We use the old data to avoid that a TIP update after an Epoch change directly leads to a switchover to the server who first runs the heartbeat when the first new slot comes in after long time of no slots
+                                    var callerTipAge = refTip - currentDataItem["servers-" + paramNodeName + "-lastTip"];
 
                                     //check if my TIP is OK
                                      if (callerTipAge <= configTresholdOkStatus) {
-                                        console.log("  Caller TIP is OK - it does qualify for getting active. callerTipAge: " + callerTipAge);
+                                        console.log("  Caller TIP is OK - it does qualify for getting active. callerTipAge (from last heartbeat signal, not the current value): " + callerTipAge);
 
                                         //Calculate Tip age of Master
                                         var masterTip = currentDataItem["servers-" + currentDataItem.currentActive + "-lastTip"];
@@ -217,7 +219,7 @@ exports.handler = (event, context, cb) => {
                                             console.log("  Master Tip is NOK - SWITCHOVER REQUIRED - masterTipAge " + masterTipAge);
 
                                             //promote Caller to master
-                                            console.log("  Promoting Caller" + paramNodeName + " to be the new master" );
+                                            console.log("  Promoting Caller" + paramNodeName + " to be the new master. Caller Tip Age: " + callerTipAge + ", Master Tip Age: " + masterTipAge );
                                             newMaster = paramNodeName;
                                         } else {
                                             console.log("  Master Tip is OK or WAIT (!NOK) - no need for action - masterTipAge: " + masterTipAge);
@@ -231,7 +233,6 @@ exports.handler = (event, context, cb) => {
                             } else {
                                 console.log("  Stopped as not enough time passed since last switchover. Time passed: " + (millisSinceLastSwitch/1000) + ", Min Required Time Passed: "+ MIN_SWITCHOVER_INTERVAL);
                             }
-
 
                             //If new Master was established persist info
                             if (newMaster != currentDataItem.currentActive) {
@@ -327,7 +328,6 @@ exports.handler = (event, context, cb) => {
                             }
                         }
                     });
-
                 }
             });
         }

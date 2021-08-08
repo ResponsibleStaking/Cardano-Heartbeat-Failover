@@ -10,6 +10,8 @@ FAILOVER_SERVICE_TENANT_ID=                               #Generate a UUID for y
 FAILOVER_SERVICE_AUTH_TOKEN=                              #AWS Auth Token
 FAILOVER_SERVICE_NODE_NAME=                               #This Name needs to be reflected in the Environment Variables of the AWS Lambda function
 
+TIME_ZONE=Europe/Vienna                                   #Timezone used for logging (used for Linux date command)
+
 ######################################
 # Do NOT modify code below           #
 ######################################
@@ -30,6 +32,8 @@ echo "Last Status: $lastStatus"
 
 #Compare new status
 newStatus=$response
+now=$(TZ=$TIME_ZONE date +"%Y-%m-%d %T")
+
 echo "New Status: $newStatus"
 
 #If changed log the event and update firewall
@@ -38,21 +42,17 @@ if [ "$lastStatus" != "$newStatus" ]; then
   if [ "$newStatus" == "Active" ]; then
     echo "Switch to Active"
     "$FAILOVER_SCRIPT_ROOT/heartbeat-failover-makeActive.sh"
+    echo "$now: Switched from $lastStatus to $newStatus" >> "$FAILOVER_SCRIPT_ROOT/heartbeat-failover.log"
+    echo "$newStatus" > "$FAILOVER_SCRIPT_ROOT/heartbeat-failover.active"
   elif [ "$newStatus" == "Standby" ]; then
     echo "Switch to StandBy"
     "$FAILOVER_SCRIPT_ROOT/heartbeat-failover-makeStandby.sh"
+    echo "$now: Switched from $lastStatus to $newStatus" >> "$FAILOVER_SCRIPT_ROOT/heartbeat-failover.log"
+    echo "$newStatus" > "$FAILOVER_SCRIPT_ROOT/heartbeat-failover.active"
   else
-    newStatus="Invalid"
-    echo "Invalid new Status -> Do nothing, Next time a valid status comes in a State switch will be executed"
+    echo "Invalid new Status -> Not changing anything, next valid signal may trigger a status change if the new status differ from the last valid response"
+    echo "$now: Invalid Status Response" >> "$FAILOVER_SCRIPT_ROOT/heartbeat-failover.log"
   fi
-
-  now=$(date +"%Y-%m-%d %T")
-  echo "$now: Switching from $lastStatus to $newStatus" >> "$FAILOVER_SCRIPT_ROOT/heartbeat-failover.log"
 else
   echo "Status not changed"
 fi
-
-
-#Save the new status
-#TODO: Only if Firewall switch was successful
-echo "$newStatus" > "$FAILOVER_SCRIPT_ROOT/heartbeat-failover.active"
