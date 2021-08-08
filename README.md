@@ -7,17 +7,10 @@ Installation Steps:
 2. Deploy the client service on your currently active BP as described in /client
 3. Deploy the client service on the secondary BP which is currently failover
 
-Usage:
-No manual interaction REQUIRED
-If you want to enforce a switchover you can use the parameter "forceSwitch=1". The other parameters are still required, but the TIP is not persisted, so it can be any value.
-Note: A forced switchover is ignoring any wait times or invalid server status. Only use this if you know that the target system is in a healthy state.
 
-Example:
-```
-?tenant-id=11111111-2222-3333-4444-555555555555&nodeName=bp1&currentTip=36543980&debug=1&forceSwitch=1
-```
 
-Basic Explanation
+
+## Basic Explanation
 * The Server-side component hosts a simple logic which receives the current TIP of each server.
 * The Client service sends the tip in alternating order (bp1, bp2, bp1, bp2, ..)
 * Whenever a TIP of a Standby server is coming in the script evaluates if this server should be promoted to be a Master.
@@ -30,12 +23,22 @@ Basic Explanation
 * The client script compares this new status with it's current Status
 * If it changed an according switchover script is triggered which modifies the CNODE Configuration and restarts the server.
 
-Overview Diagram
+## Usage:
+No manual interaction REQUIRED
+If you want to enforce a switchover you can use the parameter "forceSwitch=1". The other parameters are still required, but the TIP is not persisted, so it can be any value.
+Note: A forced switchover is ignoring any wait times or invalid server status. Only use this if you know that the target system is in a healthy state.
+Example:
+```
+?tenant-id=11111111-2222-3333-4444-555555555555&nodeName=bp1&currentTip=36543980&debug=1&forceSwitch=1
+```
+
+
+## Overview Diagram
 ![Overview Diagram](/docs/Failover-HighLevel-Flow.png)
 
-Detailed Service Logic
+## Detailed Service Logic
 ![Detailed Service Logic](/docs/Microservice%20Logic.png)
 
-Theory behind:
+## Theory behind:
 - Why using TIP and not just monitor the port?
 - Potential other triggers / enhancements of the switchover logic
