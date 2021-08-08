@@ -22,10 +22,10 @@ Basic Explanation
 * If it changed an according switchover script is triggered which modifies the CNODE Configuration and restarts the server.
 
 Overview Diagram
-![Overview Diagram](/docs/Failover-HighLevel-Flow.png)
+![Overview Diagram](/docs/Failover-HighLevel-Flow.png){:height="50%" width="50%"}
 
 Detailed Service Logic
-![Detailed Service Logic](/docs/Microservice%20Logic.png)
+![Detailed Service Logic](/docs/Microservice%20Logic.png){:height="50%" width="50%"}
 
 Theory behind:
 - Why using TIP and not just monitor the port?
