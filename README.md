@@ -21,14 +21,11 @@ Basic Explanation
 * The client script compares this new status with it's current Status
 * If it changed an according switchover script is triggered which modifies the CNODE Configuration and restarts the server.
 
-Overview Diagram:
-![Ovewview Diagram](https://github.com/ResponsibleStaking/Cardano-Heartbeat-Failover/raw/main/docs/Failover-HighLevel-Flow.png)
+Overview Diagram
+![Overview Diagram](/docs/Failover-HighLevel-Flow.png)
 
 Detailed Service Logic
-- Decision Tree / Functional Diagram
-
-
-DIAGRAM
+![Detailed Service Logic](/docs/Microservice%20Logic.png)
 
 Theory behind:
 - Why using TIP and not just monitor the port?
