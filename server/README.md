@@ -56,7 +56,12 @@ Define the Execution Permissions
 * In Execution Role click on "Use an existing role and select the previously created role
 
 Define the environment variables
-* Switch to the Configuration tab of the lambda function and create the following Environment Variables:
+* Switch to the Configuration tab of the lambda function and create the following Environment
+* Notes: All numbers are in Seconds.
+* Considerations: Be aware that a healthy TIP can go up to 120. Even 300 happens during Epoch switches sometimes. In this scenario both servers will have a high TIP age. Anyways a switchover only happens if the Master is not OK and the Standby is OK. If both have aged TIP no switchover will happen.
+
+* Consid2: The TIP age is also used to measure inactivity when a server is not sending heartbeats at all. If the server is not able to connect the last reported tip will get old and as soon as the threshold is reached it will be considered NOK.
+Variables:
 ```
 ACCEPTED_NODE_NAMES=bp1,bp2
 MIN_SWITCHOVER_INTERVAL=300
