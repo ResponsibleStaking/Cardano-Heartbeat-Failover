@@ -133,3 +133,7 @@ Test
 ```
 ?tenant-id=11111111-2222-3333-4444-555555555555&nodeName=bp1&currentTip=36543980&debug=1
 ```
+
+Debugging
+* If you test the function in Lambda directly the Console log will be visible directly
+* If you call it through Postman or directly from the client all logs will be made available in CloudWatch > Log Insights
