@@ -4,7 +4,7 @@ AWS based Cloud Service to take Failover Decisions and Client Service to send He
 
 Installation Steps:
 1. Deploy the AWS based service as described in /server
-2. Deploy the client service on your currently active BP
+2. Deploy the client service on your currently active BP as described in /client
 3. Deploy the client service on the secondary BP which is currently failover
 
 
@@ -17,6 +17,13 @@ Basic Explanation
 * The Standby is promoted active when:
 * He is OK (Last Tip < 300s). Note: Last tip means that not the newest reported TIP but the last one will be used for the evaluation. If the newest would be used it would trigger a failover if there was no TIP update for a long time (e.g. Epoch Border) and one Node suddenly jumps to TIP 0 again. If he is the first he would be promoted to master immediately. By using the Last tip of the current standby this unneccesary switch is avoided.
 * The current Master is not OK (Current Tip > 300s)
+* The service responds with the info which status the server shall have
+* The client script compares this new status with it's current Status
+* If it changed an according switchover script is triggered which modifies the CNODE Configuration and restarts the server.
+
+
+Detailed Service Logic
+- Decision Tree / Functional Diagram
 
 
 DIAGRAM
