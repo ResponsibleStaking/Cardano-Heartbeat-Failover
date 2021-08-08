@@ -21,6 +21,8 @@ Basic Explanation
 * The client script compares this new status with it's current Status
 * If it changed an according switchover script is triggered which modifies the CNODE Configuration and restarts the server.
 
+Overview Diagram:
+![Ovewview Diagram](https://github.com/ResponsibleStaking/Cardano-Heartbeat-Failover/raw/main/docs/Failover-HighLevel-Flow.png)
 
 Detailed Service Logic
 - Decision Tree / Functional Diagram
