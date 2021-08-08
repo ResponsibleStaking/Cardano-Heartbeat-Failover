@@ -7,6 +7,15 @@ Installation Steps:
 2. Deploy the client service on your currently active BP as described in /client
 3. Deploy the client service on the secondary BP which is currently failover
 
+Usage:
+No manual interaction REQUIRED
+If you want to enforce a switchover you can use the parameter "forceSwitch=1". The other parameters are still required, but the TIP is not persisted, so it can be any value.
+Note: A forced switchover is ignoring any wait times or invalid server status. Only use this if you know that the target system is in a healthy state.
+
+Example:
+```
+?tenant-id=11111111-2222-3333-4444-555555555555&nodeName=bp1&currentTip=36543980&debug=1&forceSwitch=1
+```
 
 Basic Explanation
 * The Server-side component hosts a simple logic which receives the current TIP of each server.

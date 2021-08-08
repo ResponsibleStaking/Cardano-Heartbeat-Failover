@@ -39,7 +39,7 @@ exports.handler = (event, context, cb) => {
     }
 
     if (configError) {
-        console.log(errorText);
+        console.error(errorText);
         const errorObject = {"error": errorText};
         const response = {
             "statusCode": 400,
@@ -51,7 +51,7 @@ exports.handler = (event, context, cb) => {
         };
         cb(null, response);
     } else {
-        console.log("Configuration: AcceptedNodeNames=" + configAcceptedNodeNames + ",MinSwitchoverInterval=" + configMinSwitchoverInterval + ",TresholdNokStatus=" + configTresholdNokStatus + ",TresholdOkStatus=" + configTresholdOkStatus);
+        //console.log("Configuration: AcceptedNodeNames=" + configAcceptedNodeNames + ",MinSwitchoverInterval=" + configMinSwitchoverInterval + ",TresholdNokStatus=" + configTresholdNokStatus + ",TresholdOkStatus=" + configTresholdOkStatus);
 
         var paramsError = false;
 
@@ -62,10 +62,12 @@ exports.handler = (event, context, cb) => {
         var paramCurrentTip =       parseInt(paramCurrentTipText,10);
         var paramDebug =            event["queryStringParameters"]['debug'];
         var paramJson =            event["queryStringParameters"]['json'];
+        var paramForceSwitch =            event["queryStringParameters"]['forceSwitch'];
 
         var isDebug = !(paramDebug == null || paramDebug == "");
         var isJson = !(paramJson == null || paramJson == "");
-        console.log("Parameters: tenant-id="+paramTenantId+",nodeName="+paramNodeName+",currentTip="+paramCurrentTip + ",debug="+isDebug + ",json="+isJson);
+        var isForceSwitch = !(paramForceSwitch == null || paramForceSwitch == "");
+        if (isDebug) console.log("Parameters: tenant-id="+paramTenantId+",nodeName="+paramNodeName+",currentTip="+paramCurrentTip + ",debug="+isDebug + ",json="+isJson+ ",forceSwitch="+isForceSwitch);
 
         //Validate URL Parameters and return Errors if wrong
         if (paramTenantId === null) {
@@ -86,7 +88,7 @@ exports.handler = (event, context, cb) => {
         }
 
         if (paramsError) {
-            console.log(errorText);
+            console.error(errorText);
             const errorObject = {"error": errorText};
             const response = {
                 "statusCode": 400,
@@ -98,6 +100,7 @@ exports.handler = (event, context, cb) => {
             };
             cb(null, response);
         } else {
+            //Initialize Object to hold previous data
             var currentDataItem = null;
 
             //Define DynamoDB Read Query
@@ -111,13 +114,13 @@ exports.handler = (event, context, cb) => {
             //Calculate REF Tip and define Server status based on it
             const refTip = Math.floor(Date.now()/1000 - 1591566291);
             const now = Date.now();
-            console.log("Ref Tip: " + refTip);
+            if (isDebug) console.log("Ref Tip: " + refTip);
 
             //Fetch current Status from DynamoDB
             dynamoDB.getItem(paramsRead, (err, data) => {
                 if (err) {
                     errorText = "cannot read last data";
-                    console.log(errorText);
+                    console.error(errorText);
                     const errorObject = {"error": errorText};
                     const response = {
                         "statusCode": 400,
@@ -131,25 +134,31 @@ exports.handler = (event, context, cb) => {
                 }
                 else {
                     //Use the existing Data Item and extend it with potentially missing attributes
-                    console.log("Loaded Existing Data");
+                    if (isDebug) console.log("Loaded Existing Data");
                     currentDataItem = AWS.DynamoDB.Converter.unmarshall(data.Item);
 
                     if (currentDataItem.currentActive == null) {
-                        console.log("Initialize current Active to " + aNodes[0] );
+                        console.warn("Initialize current Active to " + aNodes[0] );
                         currentDataItem.currentActive = aNodes[0];
                     }
                     if (currentDataItem.lastSwitchOver == null) {
-                        console.log("Initialize lastSwitchOver to now: " +now );
+                        console.warn("Initialize lastSwitchOver to now: " +now );
                         currentDataItem.lastSwitchOver = now;
                     }
                     aNodes.forEach(function(item){
                         if (currentDataItem["servers-" + item + "-lastTip"] == null) {
-                            console.log("Initialize servers-" + item + "-lastTip to sent Tip (all unitialized servers will have the same tip by that): " + paramCurrentTipText);
+                            console.warn("Initialize servers-" + item + "-lastTip to sent Tip (all unitialized servers will have the same tip by that): " + paramCurrentTipText);
                             currentDataItem["servers-" + item + "-lastTip"] = paramCurrentTipText;
                         }
                     });
 
                     //Persist fresh Tip Data through an update query (to make it available asap for other requests)
+                    var updateTipValue = paramCurrentTipText+"";
+                    if (isForceSwitch) {
+                        //keep the last tip in Force Scenario
+                        updateTipValue = currentDataItem["servers-"+paramNodeName+"-lastTip"];
+                    }
+
                     const paramsUpdate = {
                         TableName: 'server-failover-data',
                         Key:  {
@@ -160,13 +169,13 @@ exports.handler = (event, context, cb) => {
                             "#MyVariable": "servers-"+paramNodeName+"-lastTip"
                         },
                         ExpressionAttributeValues:{
-                            ":x": {N: paramCurrentTipText+""}
+                            ":x": {N: updateTipValue+""}
                         }
                     };
                     dynamoDB.updateItem(paramsUpdate, function(err, data) {
                         if (err) {
                             errorText = "Was not able to persist new TIP data. Abort";
-                            console.log(errorText);
+                            console.error(errorText);
                             const errorObject = {"error": errorText};
                             const response = {
                                 "statusCode": 400,
@@ -178,27 +187,27 @@ exports.handler = (event, context, cb) => {
                             };
                             cb(null, response);
                         } else {
-                            console.log("New Tip persisted successfully");
+                            if (isDebug) console.log("New Tip persisted successfully");
 
-                            console.log("  Current Active Node: " + currentDataItem.currentActive + ", Last Switchover: " + currentDataItem.lastSwitchOver);
+                            if (isDebug) console.log("  Current Active Node: " + currentDataItem.currentActive + ", Last Switchover: " + currentDataItem.lastSwitchOver);
 
                             //By default the Master will stay the same. Logic below is overwriding in the switchover scenario
                             var newMaster = currentDataItem.currentActive;
 
                             //check if there es enough time passed since last switchOver
                             var millisSinceLastSwitch = now - currentDataItem.lastSwitchOver;
-                            console.log("  Time since last switch: " + Math.floor(millisSinceLastSwitch/1000) + " seconds");
+                            if (isDebug) console.log("  Time since last switch: " + Math.floor(millisSinceLastSwitch/1000) + " seconds");
 
                             //Validate if a new switch is already possible
                             if (millisSinceLastSwitch/1000 > configMinSwitchoverInterval) {
-                                console.log("  Enough time passed since last switchover, failover theoretical possible: " + (millisSinceLastSwitch/1000) + ", Min Required Time Passed: "+ MIN_SWITCHOVER_INTERVAL);
+                                if (isDebug) console.log("  Enough time passed since last switchover, failover theoretical possible: " + Math.floor(millisSinceLastSwitch/1000) + ", Min Required Time Passed: "+ MIN_SWITCHOVER_INTERVAL);
 
                                 //Check if the caller is currently a standby (not the active node)
                                 const callerIsStandby = (paramNodeName !== currentDataItem.currentActive);
 
                                 //if I am standby - evaluate if i should takeover (if master is inavailable)
                                 if (callerIsStandby) {
-                                    console.log("  Caller is currently Standby - evaluate if it should be promoted to Active");
+                                    if (isDebug) console.log("  Caller is currently Standby - evaluate if it should be promoted to Active");
 
                                     //Calculate Tip age of Caller (based on the last heartbeat singal, not the newest data)
                                     //We use the old data to avoid that a TIP update after an Epoch change directly leads to a switchover to the server who first runs the heartbeat when the first new slot comes in after long time of no slots
@@ -206,7 +215,7 @@ exports.handler = (event, context, cb) => {
 
                                     //check if my TIP is OK
                                      if (callerTipAge <= configTresholdOkStatus) {
-                                        console.log("  Caller TIP is OK - it does qualify for getting active. callerTipAge (from last heartbeat signal, not the current value): " + callerTipAge);
+                                        if (isDebug) console.log("  Caller TIP is OK - it does qualify for getting active. callerTipAge (from last heartbeat signal, not the current value): " + callerTipAge);
 
                                         //Calculate Tip age of Master
                                         var masterTip = currentDataItem["servers-" + currentDataItem.currentActive + "-lastTip"];
@@ -216,22 +225,33 @@ exports.handler = (event, context, cb) => {
 
                                         //check if the current master is already NOK
                                         if (masterTipAge > configTresholdNokStatus) {
-                                            console.log("  Master Tip is NOK - SWITCHOVER REQUIRED - masterTipAge " + masterTipAge);
+                                            if (isDebug) console.log("  Master Tip is NOK - SWITCHOVER REQUIRED - masterTipAge " + masterTipAge);
 
                                             //promote Caller to master
-                                            console.log("  Promoting Caller" + paramNodeName + " to be the new master. Caller Tip Age: " + callerTipAge + ", Master Tip Age: " + masterTipAge );
+                                            if (isDebug) console.log("  Promoting Caller" + paramNodeName + " to be the new master. Caller Tip Age: " + callerTipAge + ", Master Tip Age: " + masterTipAge );
                                             newMaster = paramNodeName;
+
+                                            console.log("NEWTIP (" + paramNodeName + ":" + paramCurrentTip + "), ACTION=MAKEACTIVE  , SENDER=" + paramNodeName + ", CURRENTACTIVE=" + currentDataItem.currentActive + ", TIMESINCELASTSWITCH=" + Math.floor(millisSinceLastSwitch/1000) + ", NEWTIP=" + paramCurrentTip + ", LASTTIP=" + currentDataItem["servers-" + paramNodeName + "-lastTip"] + ", TIPAGE=" + callerTipAge + ", MASTERTIPAGE=" + masterTipAge);
                                         } else {
-                                            console.log("  Master Tip is OK or WAIT (!NOK) - no need for action - masterTipAge: " + masterTipAge);
+                                            if (isDebug) console.log("  Master Tip is OK or WAIT (!NOK) - no need for action - masterTipAge: " + masterTipAge);
+                                            console.log("NEWTIP (" + paramNodeName + ":" + paramCurrentTip + "), ACTION=COULDSWITCH , SENDER=" + paramNodeName + ", CURRENTACTIVE=" + currentDataItem.currentActive + ", TIMESINCELASTSWITCH=" + Math.floor(millisSinceLastSwitch/1000) + ", NEWTIP=" + paramCurrentTip + ", LASTTIP=" + currentDataItem["servers-" + paramNodeName + "-lastTip"] + ", TIPAGE=" + callerTipAge + ", MASTERTIPAGE=" + masterTipAge);
                                         }
                                     } else {
-                                        console.log("  Caller TIP is not OK (WAIT or NOK) - it does not qualify for getting active - stop. callerTipAge: " + callerTipAge);
+                                        if (isDebug) console.log("  Caller TIP is not OK (WAIT or NOK) - it does not qualify for getting active - stop. callerTipAge: " + callerTipAge);
+                                        console.log("NEWTIP (" + paramNodeName + ":" + paramCurrentTip + "), ACTION=CANNOTSWITCH, SENDER=" + paramNodeName + ", CURRENTACTIVE=" + currentDataItem.currentActive + ", TIMESINCELASTSWITCH=" + Math.floor(millisSinceLastSwitch/1000) + ", NEWTIP=" + paramCurrentTip + ", LASTTIP=" + currentDataItem["servers-" + paramNodeName + "-lastTip"] + ", TIPAGE=" + callerTipAge + ", MASTERTIPAGE=n/a");
                                     }
                                 } else {
-                                    console.log("  Caller is currently Active - not continue as we are not actively pushing away Active Status, someone has to grab it");
+                                    if (isDebug) console.log("  Caller is currently Active - not continue as we are not actively pushing away Active Status, someone has to grab it");
+                                    console.log("NEWTIP (" + paramNodeName + ":" + paramCurrentTip + "), ACTION=ALREADYACTIVE, SENDER=" + paramNodeName + ", CURRENTACTIVE=" + currentDataItem.currentActive + ", TIMESINCELASTSWITCH=" + Math.floor(millisSinceLastSwitch/1000) + ", NEWTIP=" + paramCurrentTip + ", LASTTIP=" + currentDataItem["servers-" + paramNodeName + "-lastTip"] + ", TIPAGE=n/a, MASTERTIPAGE=n/a");
                                 }
                             } else {
-                                console.log("  Stopped as not enough time passed since last switchover. Time passed: " + (millisSinceLastSwitch/1000) + ", Min Required Time Passed: "+ MIN_SWITCHOVER_INTERVAL);
+                                if (isDebug) console.log("  Stopped as not enough time passed since last switchover. Time passed: " + (millisSinceLastSwitch/1000) + ", Min Required Time Passed: "+ MIN_SWITCHOVER_INTERVAL);
+                                console.log("NEWTIP (" + paramNodeName + ":" + paramCurrentTip + "), ACTION=WAIT         , SENDER=" + paramNodeName + ", CURRENTACTIVE=" + currentDataItem.currentActive + ", TIMESINCELASTSWITCH=" + Math.floor(millisSinceLastSwitch/1000) + ", NEWTIP=" + paramCurrentTip + ", LASTTIP=" + currentDataItem["servers-" + paramNodeName + "-lastTip"] + ", TIPAGE=n/a, MASTERTIPAGE=n/a");
+                            }
+
+                            if (isForceSwitch) {
+                              console.log("Forced switch to: " +paramNodeName);
+                              newMaster = paramNodeName;
                             }
 
                             //If new Master was established persist info
@@ -255,7 +275,7 @@ exports.handler = (event, context, cb) => {
                                     if (err)
                                     {
                                         errorText = "cannot updated master info";
-                                        console.log(errorText);
+                                        console.error(errorText);
                                         const errorObject = {"error": errorText};
                                         const response = {
                                             "statusCode": 400,
@@ -267,7 +287,7 @@ exports.handler = (event, context, cb) => {
                                         };
                                         cb(null, response);
                                     } else {
-                                        console.log("Data persisted successfully", data);
+                                        if (isDebug) console.log("Data persisted successfully", data);
                                     }
                                 });
                             } else {
@@ -280,7 +300,7 @@ exports.handler = (event, context, cb) => {
                             {
                                 newCallerStatus = "Active";
                             }
-                            console.log("New Caller Status: " + newCallerStatus);
+                            if (isDebug) console.log("New Caller Status: " + newCallerStatus);
 
                             if (isDebug) {
                                 var debugInfo = { };
@@ -312,7 +332,7 @@ exports.handler = (event, context, cb) => {
                     	            "Access-Control-Allow-Credentials": true
                                     }
                                 };
-                                console.log(response);
+                                if (isDebug) console.log(response);
                                 cb(null, response);
                             } else {
                                 const response = {
@@ -323,7 +343,7 @@ exports.handler = (event, context, cb) => {
                     	            "Access-Control-Allow-Credentials": true
                                     }
                                 };
-                                console.log(response);
+                                if (isDebug) console.log(response);
                                 cb(null, response);
                             }
                         }
