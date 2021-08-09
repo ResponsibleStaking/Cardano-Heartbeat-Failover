@@ -27,7 +27,7 @@ sudo chmod 700 heartbeat-failover-makeStandby.sh
 ```
 
 Make sure the scripts are owned by root and are not editable for anyone else.
-Note: This is required because the scripts will be used to change firewall rules which requires root access. To avoid manipulation of the script (which is automatically triggered by a service) laterwards nobody else should be allowed to manipulate the script
+Note: This is required because the scripts will be used to change restart the CNODE Service which requires root access. To avoid manipulation of the script (which is automatically triggered by a service) laterwards nobody else should be allowed to manipulate the script
 ```
 sudo chown root heartbeat-failover.sh
 sudo chown root heartbeat-failover-makeActive.sh
@@ -55,20 +55,20 @@ FAILOVER_SERVICE_NODE_NAME=                               #This Name needs to be
 Open the Activation and deactivation scripts.
 Note: This files are called by the main script if the server needs to switch to a new State
 Note: They need to be customised for you purpose.
-Note: In the example I use ufw to enable or disable access to this Server. This will avoid that the Relays are fetching new Blocks which are produced by this Server.
+Typical approach: Create 2 copies of your env file, one for Active (as BP), one for Standby (as Relay). The switchover then copies the according Active or Passive ENV file to the ENV File location and restarts the node.
 ```
 sudo nano heartbeat-failover-makeActive.sh
 sudo nano heartbeat-failover-makeStandby.sh
 ```
 
-Test the Standby Script
+Test the Standby Script -> Make sure the server is switching into Relay Mode
 ```
 sudo ./heartbeat-failover-makeStandby.sh
 
 # Making Standby
 ```
 
-Test the Activation Script
+Test the Activation Script -> Make sure the server is switching into BP Mode
 ```
 sudo ./heartbeat-failover-makeActive.sh
 
@@ -76,6 +76,7 @@ sudo ./heartbeat-failover-makeActive.sh
 ```
 
 Test the failover scripts
+Note: The heartbeat-failover.active file is not found and will be created during the first execution
 ```
 sudo ./heartbeat-failover.sh
 
