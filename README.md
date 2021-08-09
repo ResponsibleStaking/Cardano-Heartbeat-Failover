@@ -24,12 +24,28 @@ Installation Steps:
 * If it changed an according switchover script is triggered which modifies the CNODE Configuration and restarts the server.
 
 ## Usage:
-No manual interaction REQUIRED
+### Daily work
+* The service takes care on Reporting the TIP and failing over if needed.
+* If you restart your master this should not trigger a failover if the DB is in sync again within 5 minutes (depending on your configuration, 300s default)
+* You can trigger a manual switchover. Please note that this will also require some time until the new master is restarted.
+
+### Maintenance Scenario
+If you want to upgrade one or both of your BPs and therefore want to manually switch over to avoid any downtime:
+* Note: This is relevant if you want to avoid any BP Downtime. If you plan your Downtime in a Block Free time you can also just force a switchover and let the Script handle the switch (with some downtime) before you start your maintenance work.
+* Disable the Timer service and Failover manually
+* Restart standby as BP and wait until up (TIP OK)
+* Stop the current master
+* If you plan to also upgrade the other server just continue with a manual switch back (no need to inform the Failover Service as after all of this the same Node will be master again)
+* If you plan to keep the old standby the new master inform the failover service by sending a forced switchover signal to avoid switching back
+* Activate the Timer service again.
+
+
+### Forced Switchover
 If you want to enforce a switchover you can use the parameter "forceSwitch=1". The other parameters are still required, but the TIP is not persisted, so it can be any value.
 Note: A forced switchover is ignoring any wait times or invalid server status. Only use this if you know that the target system is in a healthy state.
 Example:
 ```
-?tenant-id=11111111-2222-3333-4444-555555555555&nodeName=bp1&currentTip=36543980&debug=1&forceSwitch=1
+?tenant-id=11111111-2222-3333-4444-555555555555&nodeName=bp1&currentTip=36543980&json=1&debug=1&forceSwitch=1
 ```
 
 
