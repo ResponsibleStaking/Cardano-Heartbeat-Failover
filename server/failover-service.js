@@ -1,6 +1,6 @@
 //Initialize AWS Context
-const AWS = require('aws-sdk')
-const dynamoDB = new AWS.DynamoDB({ region: 'eu-west-1', apiVersion: '2012-08-10' })
+const AWS = require('aws-sdk');
+const dynamoDB = new AWS.DynamoDB({ region: 'eu-west-1', apiVersion: '2012-08-10' });
 
 //Initialize Environment Variables
 const ACCEPTED_NODE_NAMES =         process.env.ACCEPTED_NODE_NAMES;
