@@ -2,9 +2,9 @@
 AWS based Cloud Service to take Failover Decisions and Client Service to send Heartbeats which include the Node TIP and execute Switchovers.
 More details about the Concept are found below in the following sections of this page:
 
-* [Basic-Explanation](#basic-explanation)
-* [Overview-Diagram](#overview-diagram)
-* [Detailed-Service-Logic](#detailed-service-logic)
+* [Basic Explanation](#basic-explanation)
+* [Overview Diagram](#overview-diagram)
+* [Detailed Service Logic](#detailed-service-logic)
 
 
 ### Installation Steps
