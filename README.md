@@ -2,9 +2,9 @@
 AWS based Cloud Service to take Failover Decisions and Client Service to send Heartbeats which include the Node TIP and execute Switchovers.
 More details about the Concept are found below in the following sections of this page:
 
-* [Basic-Explanation](##Basic-Explanation)
-* [Overview-Diagram](##Overview-Diagram)
-* [Detailed-Service-Logic](##Detailed-Service-Logic)
+* [Basic-Explanation](#basic-explanation)
+* [Overview-Diagram](#overview-diagram)
+* [Detailed-Service-Logic](#detailed-service-logic)
 
 
 ### Installation Steps
@@ -16,7 +16,7 @@ More details about the Concept are found below in the following sections of this
 
 
 
-(##Basic-Explanation)
+## Basic Explanation
 * The Server-side component hosts a simple logic which receives the current TIP of each server.
 * The Client service sends the tip in alternating order (bp1, bp2, bp1, bp2, ..)
 * Whenever a TIP of a Standby server is coming in the script evaluates if this server should be promoted to be a Master.
@@ -55,12 +55,12 @@ Example:
 ```
 
 
-(##Overview-Diagram)
+## Overview Diagram
 ![Overview Diagram](/docs/Failover-HighLevel-Flow.png)
 
-(##Detailed-Service-Logic)
+## Detailed Service Logic
 ![Detailed Service Logic](/docs/Microservice%20Logic.png)
 
-## Theory behind:
+## Theory behind
 - Why using TIP and not just monitor the port?
 - Potential other triggers / enhancements of the switchover logic
