@@ -3,8 +3,8 @@ AWS based Cloud Service to take Failover Decisions and Client Service to send He
 
 
 Installation Steps:
-1. Deploy the AWS based service as described in /server
-2. Deploy the client service on your currently active BP as described in /client
+1. Deploy the AWS based service as described in [/server](/server)
+2. Deploy the client service on your currently active BP as described in [/client](/client)
 3. Deploy the client service on the secondary BP which is currently failover
 
 
