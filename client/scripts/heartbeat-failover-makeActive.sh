@@ -3,5 +3,11 @@
 
 echo "Making Active"
 
-#TODO: Replace with commands to make your CNODE active
-#e.g.: ufw allow proto tcp from YOUR-RELAY-IP to any port YOUR-PORT
+# TODO: Replace with commands to make your CNODE active
+
+# Example:
+# cp /opt/cardano/cnode/scripts/env-failover/active-env /opt/cardano/cnode/scripts/env
+# systemctl restart cnode
+
+# Note: The above example assumes that a copy of env is created in a new directory called env-FAILOVER_SCRIPT_ROOT
+# Just copy the original env file to there with the POOL_NAME commented in

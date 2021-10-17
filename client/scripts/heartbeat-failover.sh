@@ -58,6 +58,6 @@ if [ $customCurrentSlotNo -gt 0 ]; then
     echo "Status not changed"
   fi
 else
-  echo "Current Tip is invalid, not sending to avoid unwanted switchovers"
-  echo "$now: Invalid Tip, not sending" >> "$FAILOVER_SCRIPT_ROOT/heartbeat-failover.log"
+  echo "Current Tip is invalid, not sending to avoid unwanted switchovers: $customCurrentSlotNo"
+  echo "$now: Invalid Tip, not sending: $customCurrentSlotNo" >> "$FAILOVER_SCRIPT_ROOT/heartbeat-failover.log"
 fi
