@@ -21,38 +21,43 @@ export CARDANO_NODE_SOCKET_PATH=/opt/cardano/cnode/sockets/node0.socket
 #Get current Slot
 customCurrentSlotNoString=$($CARDANO_CLI_PATH query tip --mainnet | grep -Po '\"slot\": \K[0-9]+')
 customCurrentSlotNo=$(expr $customCurrentSlotNoString + 0)
-
-
-echo "Sending Heartbeat signal for server $FAILOVER_SERVICE_NODE_NAME: $customCurrentSlotNo"
-response=$(curl -s -m 10 -H "x-api-key: $FAILOVER_SERVICE_AUTH_TOKEN" "$FAILOVER_SERVICE_HEARTBEAT_URL?tenant-id=$FAILOVER_SERVICE_TENANT_ID&nodeName=$FAILOVER_SERVICE_NODE_NAME&currentTip=$customCurrentSlotNo")
-
-#Read current status
-lastStatus=$(cat $FAILOVER_SCRIPT_ROOT/heartbeat-failover.active)
-echo "Last Status: $lastStatus"
-
-#Compare new status
-newStatus=$response
 now=$(TZ=$TIME_ZONE date +"%Y-%m-%d %T")
 
-echo "New Status: $newStatus"
+if [ $customCurrentSlotNo -gt 0 ]; then
 
-#If changed log the event and update firewall
-if [ "$lastStatus" != "$newStatus" ]; then
-  echo "Status changed"
-  if [ "$newStatus" == "Active" ]; then
-    echo "Switch to Active"
-    "$FAILOVER_SCRIPT_ROOT/heartbeat-failover-makeActive.sh"
-    echo "$now: Switched from $lastStatus to $newStatus" >> "$FAILOVER_SCRIPT_ROOT/heartbeat-failover.log"
-    echo "$newStatus" > "$FAILOVER_SCRIPT_ROOT/heartbeat-failover.active"
-  elif [ "$newStatus" == "Standby" ]; then
-    echo "Switch to StandBy"
-    "$FAILOVER_SCRIPT_ROOT/heartbeat-failover-makeStandby.sh"
-    echo "$now: Switched from $lastStatus to $newStatus" >> "$FAILOVER_SCRIPT_ROOT/heartbeat-failover.log"
-    echo "$newStatus" > "$FAILOVER_SCRIPT_ROOT/heartbeat-failover.active"
+  echo "Sending Heartbeat signal for server $FAILOVER_SERVICE_NODE_NAME: $customCurrentSlotNo"
+  response=$(curl -s -m 10 -H "x-api-key: $FAILOVER_SERVICE_AUTH_TOKEN" "$FAILOVER_SERVICE_HEARTBEAT_URL?tenant-id=$FAILOVER_SERVICE_TENANT_ID&nodeName=$FAILOVER_SERVICE_NODE_NAME&currentTip=$customCurrentSlotNo")
+
+  #Read current status
+  lastStatus=$(cat $FAILOVER_SCRIPT_ROOT/heartbeat-failover.active)
+  echo "Last Status: $lastStatus"
+
+  #Compare new status
+  newStatus=$response
+
+  echo "New Status: $newStatus"
+
+  #If changed log the event and update firewall
+  if [ "$lastStatus" != "$newStatus" ]; then
+    echo "Status changed"
+    if [ "$newStatus" == "Active" ]; then
+      echo "Switch to Active"
+      "$FAILOVER_SCRIPT_ROOT/heartbeat-failover-makeActive.sh"
+      echo "$now: Switched from $lastStatus to $newStatus" >> "$FAILOVER_SCRIPT_ROOT/heartbeat-failover.log"
+      echo "$newStatus" > "$FAILOVER_SCRIPT_ROOT/heartbeat-failover.active"
+    elif [ "$newStatus" == "Standby" ]; then
+      echo "Switch to StandBy"
+      "$FAILOVER_SCRIPT_ROOT/heartbeat-failover-makeStandby.sh"
+      echo "$now: Switched from $lastStatus to $newStatus" >> "$FAILOVER_SCRIPT_ROOT/heartbeat-failover.log"
+      echo "$newStatus" > "$FAILOVER_SCRIPT_ROOT/heartbeat-failover.active"
+    else
+      echo "Invalid new Status -> Not changing anything, next valid signal may trigger a status change if the new status differ from the last valid response"
+      echo "$now: Invalid Status Response" >> "$FAILOVER_SCRIPT_ROOT/heartbeat-failover.log"
+    fi
   else
-    echo "Invalid new Status -> Not changing anything, next valid signal may trigger a status change if the new status differ from the last valid response"
-    echo "$now: Invalid Status Response" >> "$FAILOVER_SCRIPT_ROOT/heartbeat-failover.log"
+    echo "Status not changed"
   fi
 else
-  echo "Status not changed"
+  echo "Current Tip is invalid, not sending to avoid unwanted switchovers"
+  echo "$now: Invalid Tip, not sending" >> "$FAILOVER_SCRIPT_ROOT/heartbeat-failover.log"
 fi
